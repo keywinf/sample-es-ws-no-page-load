@@ -1,0 +1,16 @@
+/public/build/
+/public/bundles/
+/public/virtual-cloud-storage/
+
+/node_modules/
+
+/var/
+
+/vendor/
+
+.phpunit
+/phpunit.xml
+
+.gitlab-ci.yml
+
+.unison*

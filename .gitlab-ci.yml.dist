@@ -1,0 +1,66 @@
+image: docker:stable
+
+services:
+  - docker:dind
+
+stages:
+  - build
+  - test
+#  - deploy
+
+cache:
+  key: ${CI_COMMIT_REF_SLUG}
+  paths:
+    - node_modules/
+    - vendor/
+
+before_script:
+  - apk update && apk upgrade
+  - apk add openssh git make curl bash py-pip
+  - pip install docker-compose
+
+build:
+  stage: build
+  script:
+    # rename build in order to integrate it into frame, and symlink it to keep default working directory available for current CI process
+    - cd .. && mv danim-app app 
+    - ln -s app danim-app
+    # init project frame
+    - git init || true
+    # add frame remote
+    - git remote add origin $(grep ^GIT_FRAME_REMOTE= env/bridge.env | cut -d '=' -f2) || true
+    # pull frame
+    - git pull origin master || true
+    - mkdir docker || true
+    - cd docker
+    # init docker
+    - git init || true
+    # add docker remote
+    - git remote add origin $(grep ^GIT_DOCKER_REMOTE= env/bridge.env | cut -d '=' -f2) || true
+    # pull docker
+    - git pull origin master || true
+    # install dependencies
+    - cd ..
+    - make up e=test c=composer
+    - make up e=test c=node
+    - cd docker/env/test
+    - docker-compose exec -T composer bash -c "composer install"
+    - docker-compose exec -T node bash -c "npm install"
+
+debug-translator:
+  stage: test
+  script:
+    - cd ..
+    - make up e=test src=core
+    - cd docker/env/test
+    - for i in {1..30}; do (docker-compose -f docker-compose.core.yml exec -T probe bash -c "echo 'STILL_WATCHING'") && sleep 10 || break; done; # wait for containers to be available, until it has become too long
+    - docker-compose -f docker-compose.core.yml exec -T app bash -c "bin/console app:translator:debug"
+
+tests:
+  stage: test
+  script:
+    - cd ..
+    - make up e=test src=core
+    - cd docker/env/test
+    - for i in {1..30}; do (docker-compose -f docker-compose.core.yml exec -T probe bash -c "echo 'STILL_WATCHING'") && sleep 10 || break; done; # wait for containers to be available, until it has become too long
+    - docker-compose -f docker-compose.core.yml exec -T app bash -c "bin/phpunit"

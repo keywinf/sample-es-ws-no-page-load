@@ -170,7 +170,6 @@ export function changeRouting(
                 type: 'danger',
                 message: trans('front.root.ajax.change_routing.error', {}, 'bridge-general', this.state.context.locale.catalogue),
             });
-
         })
         .finally(() => {
             // END

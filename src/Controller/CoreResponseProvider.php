@@ -57,9 +57,9 @@ class CoreResponseProvider
             'envs' => $this->getShareableEnvs(),
             'socials' => $this->socials,
             /**
-             * Payload cache invalidation events.
+             * Cache invalidation events.
              *
-             * Possibles values:
+             * Possible values:
              *      - null: non-cacheable and therefore not cached
              *      - empty array []: cacheable and cached forever (until browser window/tab is closed)
              *      - non-empty array[

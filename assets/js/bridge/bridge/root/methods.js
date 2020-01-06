@@ -164,11 +164,6 @@ export function changeRouting(
                 // set title
                 document.title = `${data.appuser && data.appuser.profile.newNotifications.count > 0 ? `(${data.appuser.profile.newNotifications.count}) ` : ''}${this.state.context.envs.APP_ENV !== 'prod' ? `${_.upperCase(this.state.context.envs.APP_ENV)} • ` : ''}${data.title ? `${trans(data.title.id, data.title.parameters, data.title.domain, this.state.context.locale.catalogue)} • ` : ''}${this.state.context.envs[`OFFICE_${_.upperCase(this.state.context.envs.OFFICE).replace(' ', '_')}_TITLE`]}`;
             });
-
-            // END
-            window.routingBeingChanged = false;
-
-            callback();
         })
         .catch(error => {
             this.addFlash({
@@ -176,11 +171,14 @@ export function changeRouting(
                 message: trans('front.root.ajax.change_routing.error', {}, 'bridge-general', this.state.context.locale.catalogue),
             });
 
+        })
+        .finally(() => {
             // END
             window.routingBeingChanged = false;
 
             callback();
-        });
+        })
+    })
 };
 
 export function clearRoutingCache(keys = null) {
@@ -228,10 +226,13 @@ export function preload(uri) {
     this.get(uri, {
         validateStatus: () => true, // accepts 404, 500, etc. and handles them in then() callback
         headers: {'X-JSON-Core': true}
-    }, false, true).then(response => {
-        window.preloading[uri] = false;
-        this.cacheResponseData(uri, response.data);
-    });
+    }, false, true)
+        .then(response => {
+            this.cacheResponseData(uri, response.data);
+        })
+        .finally(() => {
+            window.preloading[uri] = false;
+        })
 }
 
 // .

@@ -1,199 +1,18 @@
 <?php
-/**
- * Whenever possible, try to avoid projection waiting, since queuing would be troubled if one message takes too much time to be treated
- */
 
 declare(strict_types=1);
 
 namespace App\Infrastructure\Queuing\Messaging\EventTopic;
 
-use App\Domain\Bot\Event\BotErrorWasRaised;
-use App\Domain\Bot\Event\BotSwitchedToBranch;
-use App\Domain\Bot\Event\BotWasChanged;
-use App\Domain\Bot\Event\BotWasDeployed;
-use App\Domain\Bot\Event\BotWasRebooted;
-use App\Domain\Bot\Event\BotWasRemoved;
-use App\Domain\ChildTemplate\ChildTemplateRepository;
-use App\Domain\ChildTemplate\Event\ChildTemplateWasChanged;
-use App\Domain\ChildTemplate\Event\ChildTemplateWasCreated;
-use App\Domain\ChildTemplate\Event\ChildTemplateWasRemoved;
-use App\Domain\Bridge\Query\Get;
-use App\Domain\License\Event\LicenseWasAttributedToBot;
-use App\Domain\License\Event\LicenseWasChanged;
-use App\Domain\License\Event\LicenseWasCreated;
-use App\Domain\License\Event\LicenseWasRemoved;
-use App\Domain\License\LicenseRepository;
-use App\Domain\Organization\Event\OrganizationPlanWasChanged;
-use App\Domain\Organization\Event\OrganizationPlanWasStarted;
-use App\Domain\Organization\Event\OrganizationWasChanged;
-use App\Domain\Organization\Event\OrganizationWasCredited;
-use App\Domain\Organization\Event\OrganizationWasDebited;
-use App\Domain\Organization\ValueObject\OrganizationBadge;
-use App\Domain\ParentTemplate\Event\ParentTemplateConfigThumbnailWasChanged;
-use App\Domain\ParentTemplate\Event\ParentTemplateWasChanged;
-use App\Domain\ParentTemplate\Event\ParentTemplateWasCreated;
-use App\Domain\ParentTemplate\Event\ParentTemplateWasPruned;
-use App\Domain\ParentTemplate\Event\ParentTemplateWasRemoved;
-use App\Domain\ParentTemplate\ParentTemplateRepository;
-use App\Domain\User\Event\NotificationsWereRemovedFromUser;
-use App\Domain\User\Event\OrganizationBadgeWasAddedToUser;
-use App\Domain\User\Event\OrganizationBadgeWasRemovedFromUser;
-use App\Domain\User\Event\UserAccountWasChanged;
-use App\Domain\User\Event\UserNotificationSettingWasChanged;
-use App\Domain\User\Event\UserNotificationsWereMarkedAsBeingRead;
-use App\Domain\User\Event\UserProfileWasChanged;
-use App\Domain\User\Event\UserWasActivated;
-use App\Domain\User\Event\UserWasLocked;
-use App\Domain\User\Event\UserWasNotified;
-use App\Domain\User\Event\UserWasPokedForActivation;
-use App\Domain\User\Event\UserWasRegisteredByEmail;
-use App\Domain\User\UserRepository;
-use App\Domain\User\ValueObject\UserOrganizationBadge;
-use App\Domain\User\ValueObject\UserRole;
-use App\Domain\Video\Event\VideoBecameOrphan;
-use App\Domain\Video\Event\VideoGenerationErrorWasRaised;
-use App\Domain\Video\Event\VideoSocialPostStateWasChanged;
-use App\Domain\Video\Event\VideoSocialPostWasDiscarded;
-use App\Domain\Video\Event\VideoSocialPostWasScheduled;
-use App\Domain\Video\Event\VideoWasChanged;
-use App\Domain\Video\Event\VideoWasCreated;
-use App\Domain\Video\Event\VideoWasMovedToWorkspace;
-use App\Domain\Video\Event\VideoWasPostedOnSocials;
-use App\Domain\Video\Event\VideoWasReinitialized;
-use App\Domain\Video\Event\VideoWasRemoved;
-use App\Domain\Video\VideoRepository;
-use App\Domain\Video\VideoService;
-use App\Domain\Workspace\Event\WorkspaceWasChanged;
-use App\Domain\Workspace\Event\WorkspaceWasCreated;
-use App\Domain\Workspace\WorkspaceRepository;
-use App\Infrastructure\EventStore\Repository\Domain\EventStoreParentTemplateRepository;
-use App\Infrastructure\EventStore\Repository\Domain\EventStoreUserRepository;
-use App\Infrastructure\Projection\Domain\User\SearchEngine\User\UserFinder;
-use App\Infrastructure\Projection\Waiter;
-use App\Infrastructure\Queuing\Messaging\Serializer;
-use App\Infrastructure\Queuing\Queue;
-use App\Infrastructure\Queuing\Topic;
-use App\Infrastructure\EventStore\Repository\Domain\EventStoreChildTemplateRepository;
-use App\Infrastructure\EventStore\Repository\Domain\EventStoreLicenseRepository;
-use App\Infrastructure\EventStore\Repository\Domain\EventStoreVideoRepository;
-use App\Infrastructure\EventStore\Repository\Domain\EventStoreWorkspaceRepository;
-use App\Infrastructure\Utils\Arrays;
-use App\Infrastructure\Utils\Objects;
-use App\Security\User;
-use Enqueue\Client\TopicSubscriberInterface;
-use Enqueue\Consumption\Result;
-use Escqrs\Bundle\ServiceBus\QueryBus;
-use Escqrs\Common\Messaging\DomainEvent;
-use Escqrs\ServiceBus\Exception\MessageDispatchException;
-use Interop\Queue\Context;
-use Interop\Queue\Message;
-use Interop\Queue\Processor;
-use Psr\Log\LoggerInterface;
-use Youshido\GraphQL\Relay\Connection\ArrayConnection;
+// .
+// .
+// .
 
 final class EventTopicWebSocketProcessor implements Processor, TopicSubscriberInterface
 {
-    public const MAX_SEC_MESSAGE_AGE = 20;
-
-    /** @var LoggerInterface */
-    protected $logger;
-
-    /** @var QueryBus */
-    protected $queryBus;
-
-    /** @var Serializer */
-    protected $serializer;
-
-    /** @var UserFinder */
-    protected $userFinder;
-
-    /** @var EventStoreLicenseRepository */
-    protected $licenseRepository;
-
-    /** @var EventStoreChildTemplateRepository */
-    protected $childTemplateRepository;
-
-    /** @var EventStoreParentTemplateRepository */
-    protected $parentTemplateRepository;
-
-    /** @var EventStoreUserRepository */
-    protected $userRepository;
-
-    /** @var EventStoreVideoRepository */
-    protected $videoRepository;
-
-    /** @var VideoService */
-    protected $videoService;
-
-    /** @var EventStoreWorkspaceRepository */
-    protected $workspaceRepository;
-
-    /** @var Waiter */
-    protected $projectionWaiter;
-
-    public function __construct(
-        LoggerInterface $logger,
-        QueryBus $queryBus,
-        Serializer $serializer,
-        UserFinder $userFinder,
-        LicenseRepository $licenseRepository,
-        ChildTemplateRepository $childTemplateRepository,
-        ParentTemplateRepository $parentTemplateRepository,
-        UserRepository $userRepository,
-        VideoRepository $videoRepository,
-        VideoService $videoService,
-        WorkspaceRepository $workspaceRepository,
-        Waiter $projectionWaiter
-    )
-    {
-        $this->logger = $logger;
-        $this->queryBus = $queryBus;
-        $this->serializer = $serializer;
-        $this->userFinder = $userFinder;
-        $this->licenseRepository = $licenseRepository;
-        $this->childTemplateRepository = $childTemplateRepository;
-        $this->parentTemplateRepository = $parentTemplateRepository;
-        $this->userRepository = $userRepository;
-        $this->videoRepository = $videoRepository;
-        $this->videoService = $videoService;
-        $this->workspaceRepository = $workspaceRepository;
-        $this->projectionWaiter = $projectionWaiter;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function process(Message $message, Context $context): Result
-    {
-        $body = $message->getBody();
-
-        try {
-            $message = $this->serializer->unserialize($body);
-
-            /** @var DomainEvent $message */
-            $recipient = $this->recipient($message);
-
-            // if event is new (age less or equal than 20 seconds) and whitelisted, get websocket noticed
-            if (time() - $message->producedAt()->getTimestamp() <= static::MAX_SEC_MESSAGE_AGE
-                && ($recipient === null || (is_array($recipient) && !empty($recipient)))
-            ) {
-                $queue = $context->createQueue(getenv('QUEUE_WS_EVENTS'));
-
-                $payload = $this->treat($message);
-
-                $message = $context->createMessage($this->serializer->serialize($message->withAddedMetadata('recipient', json_encode($recipient)), ['payload' => $payload]));
-                $context->createProducer()->send($queue, $message);
-            }
-
-            return Result::ack();
-        } catch (\Throwable $e) {
-            // debugging:
-//            throw $e;
-            $e = $e instanceof MessageDispatchException ? $e->getPrevious() : $e;
-            $this->logger->error(__METHOD__ . ': (Message body: ' . $body . ') ' . $e->getMessage() . ' ' . $e->getTraceAsString(), ['exception' => $e]);
-            return Result::reject($e->getMessage());
-        }
-    }
+    // .
+    // .
+    // .
 
     public function treat(DomainEvent $event): array
     {
@@ -652,6 +471,7 @@ GQL;
     }
 
     /**
+     * socket.io will be interested in that.
      * This methods gives the recipient user ids. Theses users are authorized to receive event payload in frontend
      * Returns array of user ids, empty array [] for nobody, NULL for everyone
      * In case no vote could have been made, it returns [] (nobody) by default
@@ -930,14 +750,7 @@ GQL;
         }
     }
 
-    public static function getSubscribedTopics()
-    {
-        return [
-            [
-                'topic' => Topic::TOPIC_EVENT,
-                'processor' => 'app.queuing.messaging.event_topic.web_socket_processor',
-                'queue' => Queue::APP_EVENTS,
-            ]
-        ];
-    }
+    // .
+    // .
+    // .
 }

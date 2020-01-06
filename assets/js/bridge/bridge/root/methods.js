@@ -1,101 +1,6 @@
-/**
- * Ex:
- *      - /team -> https://danim.com/team
- *      - /file.jpg -> https://cloud.com/file.jpg
- * @param src
- * @param bridge
- * @returns {string}
- */
-export function absolute(src, bridge = false) {
-    return (
-        !src.match(/\:/) ? (
-            src.match(/\./)
-                ? 'https://' + root.state.context.envs.AWS_S3_URI_HOST + '/' + (bridge ? root.state.context.envs.AWS_S3_BUCKET_BRIDGE : root.state.context.envs.AWS_S3_BUCKET) + '/'
-                : root.state.context.routing.uriSchemeAndHttpHost
-        ) : ''
-    ) + src;
-};
-
-export function addFlash(flash, ttl = 4000) {
-    this.setState(produce((draft, props) => {
-        flash = {...flash, id: _.uniqid()};
-
-        _.remove(draft.flashes, f => f.message === flash.message); // replace old one
-
-        draft.flashes = _.concat([flash], draft.flashes); // new ones at the top
-    }), () => {
-        if(typeof this.removeFlashTimeout === 'undefined') this.removeFlashTimeout = {};
-
-        this.removeFlashTimeout[flash.id] = setTimeout(() => {
-            this.removeFlash(flash.id);
-            clearTimeout(this.removeFlashTimeout[flash.id]);
-        }, ttl)
-    });
-};
-
-export function all(promises, alterLoaderState = true) {
-    if (alterLoaderState) this.setState(produce((draft, props) => {
-        draft.fetching++;
-    }));
-
-    let promise = Promise.all(promises);
-
-    promise
-        .then(() => {
-            if (alterLoaderState) this.setState(produce((draft, props) => {
-                draft.fetching--;
-            }));
-        })
-        .catch(() => {
-            if (alterLoaderState) this.setState(produce((draft, props) => {
-                draft.fetching--;
-            }));
-        });
-
-    return promise;
-};
-
-export function asset(path) {
-    return `${this.state.context.routing.uriHttpHost}/${path}`;
-};
-
-export function axios(options, alterLoaderState = true, noCache = false) {
-    let baseOptions = {
-        headers: {
-            'Content-Type': 'application/json',
-            'Cache-Control' : 'no-cache', // avoid browser caching, since some would otherwise use JSON results when user plays with history
-            'X-Requested-With': 'XMLHttpRequest',
-            'X-API-Secret': this.state.context.envs.API_SECRET,
-            ...this.state.context.appuser ? {'X-API-Key': this.state.context.appuser.account.apiKey} : null
-        },
-        withCredentials: true,
-    };
-
-    if (alterLoaderState) this.setState(produce((draft, props) => {
-        draft.fetching++;
-    }));
-
-    options = _.merge(baseOptions, options);
-
-    // add nocache timestamp into query parameters, to avoid any forced browser cache
-    if (noCache) options.url = this.noCacheUri(options.url);
-
-    let promise = _axios(options);
-
-    promise
-        .then(() => {
-            if (alterLoaderState) this.setState(produce((draft, props) => {
-                draft.fetching--;
-            }));
-        })
-        .catch(() => {
-            if (alterLoaderState) this.setState(produce((draft, props) => {
-                draft.fetching--;
-            }));
-        });
-
-    return promise;
-};
+// .
+// .
+// .
 
 export function cacheResponseData(uri, data) {
     if (null === data.cacheInvalidationEvents.payload) return;
@@ -294,205 +199,22 @@ export function clearRoutingCache(keys = null) {
     });
 }
 
-export function componentDidCatch(error, info) {
-    this.addFlash({
-        type: 'danger',
-        message: trans('front.root.ui.error', {}, 'bridge-general', this.state.context.locale.catalogue)
-    });
-};
-
 export function componentDidMount() {
-    // locale cookie
-    cookiesManager.setCookie(this.state.context.constants.Cookie.LOCALE, this.state.context.locale.locale, 30, this.state.context.envs.DNS_LEVEL_2 + this.state.context.envs.DNS_LEVEL_1);
-
-    _.forEach(this.subscribedToEvents(), event => document.addEventListener(event, this.handleEvent));
-
-    // flashes
-    _.forEach(this.props.data.flashes, (flash, i) => {
-        const nowTimestamp = new Date().getTime() / 1000;
-        if (nowTimestamp - flash.timestamp <= this.MAX_FLASH_AGE) this.addFlash(flash); // add flash only if recent
-    });
-
-    window.addEventListener(
-        'resize',
-        _.throttle(() => {
-            const mobileProbe = document.getElementById('mobileProbe'),
-                mobileProbeStyle = window.getComputedStyle(mobileProbe);
-
-            this.setState(produce((draft, props) => {
-                draft.context.probe = {
-                    mobile: mobileProbeStyle['border-style'] === 'dotted',
-                    tablet: mobileProbeStyle['border-style'] === 'dashed',
-                    desktop: !_.includes(['dotted', 'dashed'], mobileProbeStyle['border-style']),
-                    // these are quite useful for optimized pure components to update even if their props are not changed (assuming they're context-aware)
-                    width: window.innerWidth,
-                    height: window.innerHeight,
-                };
-            }));
-        }, 100)
-    );
-
-    // useful for floating effects to remain when page is reloaded under a non-zero scrollTop
-    epsilonScroll();
+    // .
+    // .
+    // .
 
     // cache response data
     this.cacheResponseData(this.state.context.routing.uri, this.props.data);
 
-    // hist
-    //      temporarily deactivate browser auto scroll, that is handled by app itself (history is a cross-page variable)
-    if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
-    //      init
-    window.hist = createBrowserHistory({
-        basename: this.state.context.routing.uriBase,  // The base URL of the app (see below)
-        forceRefresh: false,                    // Set true to force full page refreshes on push
-        keyLength: 6,                           // The length of location.key
-        // A function to use to confirm navigation with the user (see below)
-        getUserConfirmation: (message, callback) => callback(window.confirm(message))
-    });
-    //      listen
-    hist.listen((location, action) => {
-        let uriPathWithQuery = `${location.pathname}${location.search}${location.hash}`;
-
-        if (action === 'POP') this.changeRouting(uriPathWithQuery);
-    });
-
-    // web socket
-    window.ws = io(`${this.state.context.envs.WS_INIT_PROTOCOL}://${this.state.context.envs.WS_HOST_DNS_LEVEL_3}${this.state.context.envs.DNS_LEVEL_2}${this.state.context.envs.DNS_LEVEL_1}${this.state.context.envs.DNS_DEFAULT_PORT}${_.get(this.state, 'context.appuser.account.apiKey') ? `?key=${encodeURIComponent(this.state.context.appuser.account.apiKey)}&secret=${encodeURIComponent(this.state.context.envs.WS_SECRET)}` : ''}`);
-    ws.on(this.state.context.envs.WS_EVENT_BUS_DISPATCH_TOPIC, data => {
-        data = JSON.parse(data);
-        data = _.merge(data, {
-            aggregate_type: _.snakeCase(_.last(_.split(data.message.metadata._aggregate_type, '\\'))), // User => user
-            aggregate_id: data.message.metadata._aggregate_id,
-            event: _.snakeCase(_.last(_.split(data.message.message_name, '\\'))), // App\domain\User\Event\UserProfileWasChanged => user_profile_was_changed
-        });
-
-        cl(data);
-
-        document.dispatchEvent(new CustomEvent(`event.${data.aggregate_type}.${data.event}`, {detail: data}));
-    });
-    ws.on('connect', () => cl('WebSocket open'));
-    ws.on('disconnect', () => cl('WebSocket closed'));
-
-    // modal by query string (ex: modal=App.User.Modal.Content.User
-    // no need to clean user input, no risk
-    const modal = _.get(this.state, 'context.routing.query.modal');
-    if (modal) {
-        const modalProps = _.get(this.state, 'context.routing.query.modalProps');
-        window.modal.set(_.get(window, modal), null, modalProps ? JSON.parse(modalProps) : null);
-    }
-
-    // service worker
-    // Listen the "add to home screen" event and show the dialog on mobile
-    window.addEventListener('beforeinstallprompt', ev => {
-        ev.preventDefault();
-    //     window.onscroll = () => ev.prompt();
-    //     // Wait for the user to respond to the prompt
-    //     ev.userChoice.then(res => {
-    //         if (res.outcome === 'accepted') console.log('User accepted the A2HS prompt');
-    //         else console.log('User dismissed the A2HS prompt');
-    //     });
-    });
-    window.swBoot();
+    // .
+    // .
+    // .
 };
 
-export function componentDidUpdate(prevProps, prevState) {
-    // let websocket know if user anonymity switched
-    let newId = _.get(this.state, 'context.appuser.id', null),
-        oldId = _.get(prevState, 'context.appuser.id', null);
-    if (newId !== oldId) {
-        if (newId) ws.emit('anonymous_off', this.state.context.appuser.account.apiKey);
-        else ws.emit('anonymous_on');
-    }
-
-    // update favicon when there are new notifications or some are read/removed
-    let links = document.querySelectorAll('link[data-icon]');
-    let newTitle = document.title.replace(/^\(\d+\)\s/, '');
-    if (this.state.context.appuser) {
-        if (this.state.context.appuser.profile.newNotifications.count) {
-            for (let link of links)
-                if (!link.getAttribute('href').match(/-red\./))
-                    link.setAttribute('href', link.getAttribute('href').replace(/\./, '-red.'));
-            newTitle = `(${this.state.context.appuser.profile.newNotifications.count}) ${newTitle}`;
-        } else {
-            for (let link of links) link.setAttribute('href', link.getAttribute('href').replace(/-red\./, '.'));
-        }
-    }
-    document.title = newTitle;
-};
-
-export function componentWillUnmount() {
-    _.forEach(this.subscribedToEvents(), event => document.removeEventListener(event, this.handleEvent));
-};
-
-export function gen(route, parameters = {}) {
-    parameters = _.merge({ // default parameters
-        ...route.match(/^connect\:\:/) ? {dns_level_4: this.state.context.envs.DNS_LEVEL_4} : null,
-        dns_level_2: this.state.context.envs.DNS_LEVEL_2,
-    }, parameters);
-
-    let ans = Routing.generate(route, parameters);
-
-    if (this.state.context.envs.DNS_DEFAULT_PORT) ans = ans.replace(this.state.context.envs.DNS_LEVEL_2 + this.state.context.envs.DNS_LEVEL_1, this.state.context.envs.DNS_LEVEL_2 + this.state.context.envs.DNS_LEVEL_1 + this.state.context.envs.DNS_DEFAULT_PORT);
-
-    return ans;
-};
-
-export function get(url, options, alterLoaderState = true, noCache = false) {
-    return this.axios(_.merge(options, {url}), alterLoaderState, noCache);
-};
-
-export function handleEvent(ev) {
-    switch (`${ev.detail.aggregate_type}.${ev.detail.event}`) {
-        case 'user.user_account_was_changed':
-            // if (_.get(ev, 'detail.message.payload.patch.last_login')) {
-            //     if (this.state.modal.component && this.state.modal.component.path() === App.User.Modal.Content.Login.path() && this.state.modal.open) {
-            //         ws.emit('anonymous_off', this.state.context.appuser.account.apiKey);
-            //
-            //         modal.close();
-            //
-            //         root.refreshRouting();
-            //     }
-            // }
-            //
-            // if (_.get(ev, 'detail.message.payload.patch.last_logout')) {
-            //     ws.emit('anonymous_on');
-            //
-            //     modal.set(App.User.Modal.Content.Login, null, null, false, () => modal.open(false));
-            // }
-
-            break;
-    }
-};
-
-export function handleFlashClick(ev) {
-    const flashId = ev.currentTarget.getAttribute('data-flash-id');
-    clearTimeout(this.removeFlashTimeout[flashId]);
-    this.removeFlash(flashId);
-};
-
-export function handleMenuToggle() {
-    this.setState(produce((draft, props) => {
-        draft.menu.open = !draft.menu.open;
-    }));
-}
-
-export function img(path, filter = null) {
-    if (! path) return null;
-    if (! filter || this.state.context.envs.IMAGES_OPTIMIZATION === '0') return absolute(path);
-    return this.gen('liip_imagine_filter', {path, filter});
-};
-
-export function noCacheUri(uri) {
-    if (!uri.match(/\?/)) uri += '?';
-    else uri += '&';
-    uri += 'nc=' + new Date().getTime();
-
-    return uri;
-}
-
-export function post(url, options, alterLoaderState = true, noCache = false) {
-    return this.axios(_.merge(options, {url, method: 'post'}), alterLoaderState, noCache);
-};
+// .
+// .
+// .
 
 export function preload(uri) {
     if (this.state.context.routing.office === 'back-office') return;
@@ -512,11 +234,9 @@ export function preload(uri) {
     });
 }
 
-export function purgeFlashes() {
-    _.each(this.state.flashes, flash => {
-        this.removeFlash(flash.id);
-    });
-};
+// .
+// .
+// .
 
 export function refreshRouting(scrollTopReset = false, callback = () => null) {
     if (window.refreshingRouting === true) return; // no need to add an ajax call if already being done
@@ -526,16 +246,6 @@ export function refreshRouting(scrollTopReset = false, callback = () => null) {
     window.refreshingRouting = false;
 };
 
-export function removeFlash(flashId) {
-    this.setState(produce((draft, props) => {
-        _.remove(draft.flashes, function(flash) {
-            return flash.id === flashId;
-        });
-    }));
-};
-
-export function subscribedToEvents() {
-    return [
-        'event.user.user_account_was_changed',
-    ];
-};
+// .
+// .
+// .

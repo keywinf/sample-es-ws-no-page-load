@@ -5,4 +5,4 @@ Private code sample
 
 Code samples written with **Symfony** (PHP) and **React** (JS).
 
-Take a look at [the introduction to this](https://dev.to/keywinf/eventsourcing-websocket-almost-no-page-load-201h).
+Take a look at [the introduction to this](https://dev.to/keywinf/eventsourcing-websocket-almost-no-page-load-201h)!

@@ -568,7 +568,6 @@ GQL;
 
                 /** @var \stdClass $childTemplate */
                 return $childTemplate->organization->memberIds;
-            /** @noinspection PhpMissingBreakStatementInspection */
             case ($event instanceof ChildTemplateWasCreated):
                 $admins = [];
             // childTemplate organization members + admins
@@ -592,7 +591,6 @@ GQL;
                 return Arrays::union($organization->memberIds, $admins);
 
             // parentTemplate organization members OR everyone
-            /** @noinspection PhpMissingBreakStatementInspection */
             case ($event instanceof ParentTemplateWasCreated):
                 $admins = [];
             // parentTemplate organization members + admins OR everyone
@@ -620,7 +618,6 @@ GQL;
                 return Arrays::union($organization->memberIds, $admins);
 
             // video organization members + admins
-            /** @noinspection PhpMissingBreakStatementInspection */
             case ($event instanceof VideoWasCreated):
                 $organization = $this->videoService->organization($event->workspaceId(), $event->childTemplateId(), $event->parentTemplateId());
             case ($event instanceof VideoWasRemoved):
@@ -640,7 +637,6 @@ GQL;
 
                 /** @var \stdClass $organization */
                 return $organization ? Arrays::union($organization->memberIds, $this->userFinder->findUsersHavingRole(UserRole::ADMIN())) : [];
-            /** @noinspection PhpMissingBreakStatementInspection */
             case ($event instanceof VideoWasChanged):
                 $admins = $this->userFinder->findUsersHavingRole(UserRole::ADMIN());
             // video organization members
@@ -717,10 +713,8 @@ GQL;
                 return $organization->memberIds;
 
             // organization members
-            /** @noinspection PhpMissingBreakStatementInspection */
             case ($event instanceof UserWasRegisteredByEmail):
                 if (!$organizationId = $event->organizationId(true)) return null;
-            /** @noinspection PhpMissingBreakStatementInspection */
             case ($event instanceof WorkspaceWasCreated):
                 if (!isset($organizationId)) $organizationId = $event->organizationId(true);
             case ($event instanceof OrganizationWasChanged):

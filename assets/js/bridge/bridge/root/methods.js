@@ -241,7 +241,7 @@ export function preload(uri) {
 export function refreshRouting(scrollTopReset = false, callback = () => null) {
     if (window.refreshingRouting === true) return; // no need to add an ajax call if already being done
     window.refreshingRouting = true;
-    this.clearRoutingCache(this.state.context.routing.uri); // refresh are done independently of any cache
+    this.clearRoutingCache(this.state.context.routing.uri); // refreshes are done independently of any cache
     this.changeRouting(this.state.context.routing.uriPathWithQuery, true, scrollTopReset, callback);
     window.refreshingRouting = false;
 };

@@ -75,10 +75,10 @@ class CoreResponseProvider
              *
              * Criteria:
              *      - condition "{id}" -> metadata _aggregate_id must be "id"
-             *      - condition "{path}:{value}" -> payload "path" value must be "value" (value may be "null", as in "organization_id:null")
+             *      - condition "{path}:{value}" -> payload path value must be "{value}" (value may be "null", as in "organization_id:null")
              *      - condition "{path}:" -> payload must have "path" set, whatever the value
              *      - action TRUE -> go ahead
-             *      - action "{A}|{B}|..." -> go ahead if it verifies at least one of A, B, etc.. Ex: "id748" condition + "patch.name:Sweet|patch.phone:|patch.job:" action would give global condition (id748 && (patch.name: || organization_id:id657))
+             *      - action "{A}|{B}|..." -> go ahead if it verifies at least one of A, B, etc.. Ex: "id748" condition + "patch.name:Sweet|patch.phone:|patch.job:" action would give global condition (id748 && (patch.name:Sweet || patch.phone: || patch.job:))
              */
             'cacheInvalidationEvents' => [
                 'appuser' => null,

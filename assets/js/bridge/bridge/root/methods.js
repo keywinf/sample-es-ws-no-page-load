@@ -74,7 +74,7 @@ export function cacheResponseData(uri, data) {
 export function changeRouting(
     newUri,
     force = false, // force change if target is the same?
-    scrollTopReset = null, // default behaviours is to arbitrate by itself
+    scrollTopReset = null, // default behaviour is to arbitrate by itself
     callback = () => null // called when all's done (successfully or not)
 ) {
     if (_.get(window, 'routingBeingChanged') === true) return;

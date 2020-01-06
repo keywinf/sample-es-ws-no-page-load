@@ -4,81 +4,15 @@ declare(strict_types=1);
 
 namespace App\Security;
 
-use App\Domain\Bridge\Query\Get;
-use Escqrs\ServiceBus\Exception\MessageDispatchException;
-use Escqrs\ServiceBus\QueryBus;
-use Psr\Log\LoggerInterface;
-use Symfony\Bridge\Monolog\Logger;
+// .
+// .
+// .
 
 class UserLoader
 {
-    /** @var QueryBus */
-    protected $queryBus;
-
-    /** @var Logger */
-    protected $logger;
-
-    /**
-     * UserLoader constructor.
-     * @param QueryBus $queryBus
-     * @param LoggerInterface $logger
-     */
-    public function __construct(
-        QueryBus $queryBus,
-        LoggerInterface $logger
-    )
-    {
-        $this->queryBus = $queryBus;
-        $this->logger = $logger;
-    }
-
-    /**
-     * @param string $email
-     * @return User|null
-     * @throws \Exception
-     */
-    public function loadUserByEmail(string $email)
-    {
-        if (! $email) return null;
-
-        $user = $this->load('email', $email);
-
-        if(! $user) return null;
-
-        return new User($user);
-    }
-
-    /**
-     * @param string $apiKey
-     * @return User|null
-     * @throws \Exception
-     */
-    public function loadUserByApiKey(string $apiKey)
-    {
-        if (! $apiKey) return null;
-
-        $user = $this->load('apiKey', $apiKey);
-
-        if(! $user) return null;
-
-        return new User($user);
-    }
-
-    /**
-     * @param string $userId
-     * @return User|null
-     * @throws \Exception
-     */
-    public function loadUserById(string $userId)
-    {
-        if (! $userId) return null;
-
-        $user = $this->load('id', $userId);
-
-        if(! $user) return null;
-
-        return new User($user);
-    }
+    // .
+    // .
+    // .
 
     public function load($key, $value)
     {

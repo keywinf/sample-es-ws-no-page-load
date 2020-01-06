@@ -4,78 +4,18 @@ declare (strict_types=1);
 
 namespace App\Controller\FrontOffice\User;
 
-use App\Controller\FlashType;
-use App\Controller\CoreResponseProvider;
-use App\Controller\SecurityAwareTrait;
-use App\Domain\Bridge\Query\Get;
-use App\Domain\User\UserRepository;
-use App\Infrastructure\EventStore\Repository\Domain\EventStoreUserRepository;
-use App\Infrastructure\Projection\Waiter;
-use App\Infrastructure\Service\Routing\Router;
-use App\Infrastructure\Service\Session\FlashDriver;
-use App\Infrastructure\Service\Translation\Translator;
-use App\Infrastructure\Utils\Arrays;
-use App\Infrastructure\Utils\Objects;
-use Escqrs\ServiceBus\QueryBus;
-use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Security\Core\Security;
-use Twig\Environment;
+// .
+// .
+// .
 
 /**
  * Class ProfileController
  */
 final class ProfileController
 {
-    use SecurityAwareTrait;
-
-    /** @var Environment */
-    protected $templateEngine;
-
-    /** @var CoreResponseProvider */
-    protected $coreResponseProvider;
-
-    /** @var Router */
-    protected $router;
-
-    /** @var QueryBus */
-    protected $queryBus;
-
-    /** @var FlashDriver */
-    protected $flashDriver;
-
-    /** @var Translator */
-    protected $translator;
-
-    /** @var EventStoreUserRepository */
-    protected $userRepository;
-
-    /** @var Waiter */
-    protected $projectionWaiter;
-
-    public function __construct(
-        Security $security,
-        Environment $templateEngine,
-        CoreResponseProvider $coreResponseProvider,
-        Router $router,
-        QueryBus $queryBus,
-        FlashDriver $flashDriver,
-        Translator $translator,
-        UserRepository $userRepository,
-        Waiter $projectionWaiter
-    )
-    {
-        $this->security = $security;
-        $this->templateEngine = $templateEngine;
-        $this->coreResponseProvider = $coreResponseProvider;
-        $this->router = $router;
-        $this->queryBus = $queryBus;
-        $this->flashDriver = $flashDriver;
-        $this->translator = $translator;
-        $this->userRepository = $userRepository;
-        $this->projectionWaiter = $projectionWaiter;
-    }
+    // .
+    // .
+    // .
 
     public function profileAction(Request $request, string $id): Response
     {
@@ -218,14 +158,5 @@ GQL;
             return new JsonResponse($data);
 
         return new Response($this->templateEngine->render('office/layout.html.twig', ['data' => $data]));
-    }
-
-    protected function title(array $parameters = [])
-    {
-        return [
-            'id' => 'back.controller.profile.title',
-            'parameters' => $parameters,
-            'domain' => 'front_office-user'
-        ];
     }
 }
